@@ -1,19 +1,20 @@
-import { HKT, URIS, URIS2, URIS3, Type, Type2, Type3 } from 'fp-ts/lib/HKT'
-import { Monoid, getArrayMonoid, monoidAll, monoidAny } from 'fp-ts/lib/Monoid'
 import {
   Applicative,
   Applicative1,
   Applicative2,
-  Applicative3,
   Applicative2C,
+  Applicative3,
   Applicative3C
 } from 'fp-ts/lib/Applicative'
-import { Foldable, Foldable1, Foldable2, Foldable3, foldMap } from 'fp-ts/lib/Foldable'
-import { Traversable, Traversable1, Traversable2, Traversable3 } from 'fp-ts/lib/Traversable'
-import { Option, none, some, fromNullable, getFirstMonoid, fromPredicate } from 'fp-ts/lib/Option'
-import { identity, constant, Predicate, Refinement } from 'fp-ts/lib/function'
-import { identity as id } from 'fp-ts/lib/Identity'
 import { Const, getApplicative } from 'fp-ts/lib/Const'
+import { Either, left, right } from 'fp-ts/lib/Either'
+import { Foldable, Foldable1, Foldable2, Foldable3, foldMap } from 'fp-ts/lib/Foldable'
+import { constant, identity, Predicate, Refinement } from 'fp-ts/lib/function'
+import { HKT, Type, Type2, Type3, URIS, URIS2, URIS3 } from 'fp-ts/lib/HKT'
+import { identity as id } from 'fp-ts/lib/Identity'
+import { getArrayMonoid, Monoid, monoidAll, monoidAny } from 'fp-ts/lib/Monoid'
+import { fromNullable, fromPredicate, getFirstMonoid, none, Option, some } from 'fp-ts/lib/Option'
+import { Traversable, Traversable1, Traversable2, Traversable3 } from 'fp-ts/lib/Traversable'
 
 /**
  * @internal
@@ -27,40 +28,40 @@ export const update = <O, K extends keyof O, A extends O[K]>(o: O, k: K, a: A): 
   1. reverseGet(get(s)) = s
   2. get(reversetGet(a)) = a
 */
-export class Iso<S, A> {
+export class Iso<S, A, T = S, B = A> {
   readonly _tag: 'Iso' = 'Iso'
   readonly unwrap = this.get
   readonly to = this.get
   readonly wrap = this.reverseGet
   readonly from = this.reverseGet
-  constructor(readonly get: (s: S) => A, readonly reverseGet: (a: A) => S) {}
+  constructor(readonly get: (s: S) => A, readonly reverseGet: (b: B) => T) {}
   /** reverse the `Iso`: the source becomes the target and the target becomes the source */
-  reverse(): Iso<A, S> {
+  reverse(): Iso<B, T, A, S> {
     return new Iso(this.reverseGet, this.get)
   }
 
-  modify(f: (a: A) => A): (s: S) => S {
+  modify(f: (a: A) => B): (s: S) => T {
     return s => this.reverseGet(f(this.get(s)))
   }
 
   /** view an Iso as a Lens */
-  asLens(): Lens<S, A> {
+  asLens(): Lens<S, A, T, B> {
     return new Lens(this.get, a => _ => this.reverseGet(a))
   }
 
   /** view an Iso as a Prism */
-  asPrism(): Prism<S, A> {
-    return new Prism(s => some(this.get(s)), this.reverseGet)
+  asPrism(): Prism<S, A, T, B> {
+    return new Prism(s => right(this.get(s)), this.reverseGet)
   }
 
   /** view an Iso as a Optional */
-  asOptional(): Optional<S, A> {
-    return new Optional(s => some(this.get(s)), a => _ => this.reverseGet(a))
+  asOptional(): Optional<S, A, T, B> {
+    return new Optional(s => right(this.get(s)), a => _ => this.reverseGet(a))
   }
 
   /** view an Iso as a Traversal */
-  asTraversal(): Traversal<S, A> {
-    return new Traversal(<F>(F: Applicative<F>) => (f: (a: A) => HKT<F, A>) => (s: S) =>
+  asTraversal(): Traversal<S, A, T, B> {
+    return new Traversal(<F>(F: Applicative<F>) => (f: (a: A) => HKT<F, B>) => (s: S) =>
       F.map(f(this.get(s)), a => this.reverseGet(a))
     )
   }
@@ -76,53 +77,53 @@ export class Iso<S, A> {
   }
 
   /** view an Iso as a Setter */
-  asSetter(): Setter<S, A> {
+  asSetter(): Setter<S, A, T, B> {
     return new Setter(f => this.modify(f))
   }
 
   /** compose an Iso with an Iso */
-  compose<B>(ab: Iso<A, B>): Iso<S, B> {
-    return new Iso(s => ab.get(this.get(s)), b => this.reverseGet(ab.reverseGet(b)))
+  compose<C, D = C>(ac: Iso<A, C, B, D>): Iso<S, C, T, D> {
+    return new Iso(s => ac.get(this.get(s)), b => this.reverseGet(ac.reverseGet(b)))
   }
 
   /** @alias of `compose` */
-  composeIso<B>(ab: Iso<A, B>): Iso<S, B> {
-    return this.compose(ab)
+  composeIso<C, D = C>(ac: Iso<A, C, B, D>): Iso<S, C, T, D> {
+    return this.compose(ac)
   }
 
   /** compose an Iso with a Lens */
-  composeLens<B>(ab: Lens<A, B>): Lens<S, B> {
-    return this.asLens().compose(ab)
+  composeLens<C, D = C>(ac: Lens<A, C, B, D>): Lens<S, C, T, D> {
+    return this.asLens().compose(ac)
   }
 
   /** compose an Iso with a Prism */
-  composePrism<B>(ab: Prism<A, B>): Prism<S, B> {
-    return this.asPrism().compose(ab)
+  composePrism<C, D = C>(ac: Prism<A, C, B, D>): Prism<S, C, T, D> {
+    return this.asPrism().compose(ac)
   }
 
   /** compose an Iso with an Optional */
-  composeOptional<B>(ab: Optional<A, B>): Optional<S, B> {
-    return this.asOptional().compose(ab)
+  composeOptional<C, D = C>(ac: Optional<A, C, B, D>): Optional<S, C, T, D> {
+    return this.asOptional().compose(ac)
   }
 
   /** compose an Iso with a Traversal */
-  composeTraversal<B>(ab: Traversal<A, B>): Traversal<S, B> {
-    return this.asTraversal().compose(ab)
+  composeTraversal<C, D = C>(ac: Traversal<A, C, B, D>): Traversal<S, C, T, D> {
+    return this.asTraversal().compose(ac)
   }
 
   /** compose an Iso with a Fold */
-  composeFold<B>(ab: Fold<A, B>): Fold<S, B> {
-    return this.asFold().compose(ab)
+  composeFold<C>(ac: Fold<A, C>): Fold<S, C> {
+    return this.asFold().compose(ac)
   }
 
   /** compose an Iso with a Getter */
-  composeGetter<B>(ab: Getter<A, B>): Getter<S, B> {
-    return this.asGetter().compose(ab)
+  composeGetter<C>(ac: Getter<A, C>): Getter<S, C> {
+    return this.asGetter().compose(ac)
   }
 
   /** compose an Iso with a Setter */
-  composeSetter<B>(ab: Setter<A, B>): Setter<S, B> {
-    return this.asSetter().compose(ab)
+  composeSetter<C, D = C>(ac: Setter<A, C, B, D>): Setter<S, C, T, D> {
+    return this.asSetter().compose(ac)
   }
 }
 
@@ -163,9 +164,9 @@ function lensFromNullableProp<S, A extends S[K], K extends keyof S>(k: K, defaul
   2. set(get(s))(s) = s
   3. set(a)(set(a)(s)) = set(a)(s)
 */
-export class Lens<S, A> {
+export class Lens<S, A, T = S, B = A> {
   readonly _tag: 'Lens' = 'Lens'
-  constructor(readonly get: (s: S) => A, readonly set: (a: A) => (s: S) => S) {}
+  constructor(readonly get: (s: S) => A, readonly set: (b: B) => (s: S) => T) {}
 
   /**
    * @example
@@ -313,28 +314,24 @@ export class Lens<S, A> {
       : lensFromNullableProp<any, any, any>(arguments[0], arguments[1])
   }
 
-  modify(f: (a: A) => A): (s: S) => S {
-    return s => {
-      const v = this.get(s)
-      const n = f(v)
-      return v === n ? s : this.set(n)(s)
-    }
+  modify(f: (a: A) => B): (s: S) => T {
+    return s => this.set(f(this.get(s)))(s)
   }
 
   /** view a Lens as a Optional */
-  asOptional(): Optional<S, A> {
-    return new Optional(s => some(this.get(s)), this.set)
+  asOptional(): Optional<S, A, T, B> {
+    return new Optional(s => right(this.get(s)), this.set)
   }
 
   /** view a Lens as a Traversal */
-  asTraversal(): Traversal<S, A> {
-    return new Traversal(<F>(F: Applicative<F>) => (f: (a: A) => HKT<F, A>) => (s: S) =>
+  asTraversal(): Traversal<S, A, T, B> {
+    return new Traversal(<F>(F: Applicative<F>) => (f: (a: A) => HKT<F, B>) => (s: S) =>
       F.map(f(this.get(s)), a => this.set(a)(s))
     )
   }
 
   /** view a Lens as a Setter */
-  asSetter(): Setter<S, A> {
+  asSetter(): Setter<S, A, T, B> {
     return new Setter(f => this.modify(f))
   }
 
@@ -349,13 +346,13 @@ export class Lens<S, A> {
   }
 
   /** compose a Lens with a Lens */
-  compose<B>(ab: Lens<A, B>): Lens<S, B> {
-    return new Lens(s => ab.get(this.get(s)), b => s => this.set(ab.set(b)(this.get(s)))(s))
+  compose<C, D = C>(ac: Lens<A, C, B, D>): Lens<S, C, T, D> {
+    return new Lens(s => ac.get(this.get(s)), b => s => this.set(ac.set(b)(this.get(s)))(s))
   }
 
   /** @alias of `compose` */
-  composeLens<B>(ab: Lens<A, B>): Lens<S, B> {
-    return this.compose(ab)
+  composeLens<C, D = C>(ac: Lens<A, C, B, D>): Lens<S, C, T, D> {
+    return this.compose(ac)
   }
 
   /** compose a Lens with a Getter */
@@ -369,28 +366,28 @@ export class Lens<S, A> {
   }
 
   /** compose a Lens with an Optional */
-  composeOptional<B>(ab: Optional<A, B>): Optional<S, B> {
-    return this.asOptional().compose(ab)
+  composeOptional<C, D = C>(ac: Optional<A, C, B, D>): Optional<S, C, T, D> {
+    return this.asOptional().compose(ac)
   }
 
   /** compose a Lens with an Traversal */
-  composeTraversal<B>(ab: Traversal<A, B>): Traversal<S, B> {
-    return this.asTraversal().compose(ab)
+  composeTraversal<C, D = C>(ac: Traversal<A, C, B, D>): Traversal<S, C, T, D> {
+    return this.asTraversal().compose(ac)
   }
 
   /** compose a Lens with an Setter */
-  composeSetter<B>(ab: Setter<A, B>): Setter<S, B> {
-    return this.asSetter().compose(ab)
+  composeSetter<C, D = C>(ac: Setter<A, C, B, D>): Setter<S, C, T, D> {
+    return this.asSetter().compose(ac)
   }
 
   /** compose a Lens with an Iso */
-  composeIso<B>(ab: Iso<A, B>): Lens<S, B> {
-    return this.compose(ab.asLens())
+  composeIso<C, D = C>(ac: Iso<A, C, B, D>): Lens<S, C, T, D> {
+    return this.compose(ac.asLens())
   }
 
   /** compose a Lens with a Prism */
-  composePrism<B>(ab: Prism<A, B>): Optional<S, B> {
-    return this.asOptional().compose(ab.asOptional())
+  composePrism<C, D = C>(ac: Prism<A, C, B, D>): Optional<S, C, T, D> {
+    return this.asOptional().compose(ac.asOptional())
   }
 }
 
@@ -399,14 +396,14 @@ export class Lens<S, A> {
   1. getOption(s).fold(s, reverseGet) = s
   2. getOption(reverseGet(a)) = Some(a)
 */
-export class Prism<S, A> {
+export class Prism<S, A, T = S, B = A> {
   readonly _tag: 'Prism' = 'Prism'
-  constructor(readonly getOption: (s: S) => Option<A>, readonly reverseGet: (a: A) => S) {}
+  constructor(readonly getOrModify: (s: S) => Either<T, A>, readonly reverseGet: (b: B) => T) {}
 
   static fromPredicate<S, A extends S>(refinement: Refinement<S, A>): Prism<S, A>
   static fromPredicate<A>(predicate: Predicate<A>): Prism<A, A>
   static fromPredicate<A>(predicate: Predicate<A>): Prism<A, A> {
-    return new Prism(s => (predicate(s) ? some(s) : none), identity)
+    return new Prism(s => (predicate(s) ? right(s) : left(s)), identity)
   }
 
   /**
@@ -414,44 +411,44 @@ export class Prism<S, A> {
    * @deprecated
    */
   static fromRefinement<S, A extends S>(refinement: Refinement<S, A>): Prism<S, A> {
-    return new Prism<S, A>(s => (refinement(s) ? some(s) : none), identity)
+    return new Prism(s => (refinement(s) ? right(s) : left(s)), identity)
   }
 
   static some<A>(): Prism<Option<A>, A> {
     return somePrism
   }
 
-  modify(f: (a: A) => A): (s: S) => S {
-    return s => this.modifyOption(f)(s).getOrElse(s)
+  getOption(s: S): Option<A> {
+    return this.getOrModify(s).fold(constant(none), some)
   }
 
-  modifyOption(f: (a: A) => A): (s: S) => Option<S> {
-    return s =>
-      this.getOption(s).map(v => {
-        const n = f(v)
-        return n === v ? s : this.reverseGet(n)
-      })
+  modify(f: (a: A) => B): (s: S) => T {
+    return s => this.getOrModify(s).fold(identity, v => this.reverseGet(f(v)))
+  }
+
+  modifyOption(f: (a: A) => B): (s: S) => Option<T> {
+    return s => this.getOption(s).map(v => this.reverseGet(f(v)))
   }
 
   /** set the target of a Prism with a value */
-  set(a: A): (s: S) => S {
-    return this.modify(() => a)
+  set(b: B): (s: S) => T {
+    return this.modify(() => b)
   }
 
   /** view a Prism as a Optional */
-  asOptional(): Optional<S, A> {
-    return new Optional(this.getOption, a => this.set(a))
+  asOptional(): Optional<S, A, T, B> {
+    return new Optional(this.getOrModify, b => this.set(b))
   }
 
   /** view a Prism as a Traversal */
-  asTraversal(): Traversal<S, A> {
-    return new Traversal(<F>(F: Applicative<F>) => (f: (a: A) => HKT<F, A>) => (s: S) =>
-      this.getOption(s).foldL(() => F.of(s), a => F.map(f(a), a => this.set(a)(s)))
+  asTraversal(): Traversal<S, A, T, B> {
+    return new Traversal(<F>(F: Applicative<F>) => (f: (a: A) => HKT<F, B>) => (s: S) =>
+      this.getOrModify(s).fold(F.of, a => F.map(f(a), b => this.set(b)(s)))
     )
   }
 
   /** view a Prism as a Setter */
-  asSetter(): Setter<S, A> {
+  asSetter(): Setter<S, A, T, B> {
     return new Setter(f => this.modify(f))
   }
 
@@ -461,55 +458,61 @@ export class Prism<S, A> {
   }
 
   /** compose a Prism with a Prism */
-  compose<B>(ab: Prism<A, B>): Prism<S, B> {
-    return new Prism(s => this.getOption(s).chain(a => ab.getOption(a)), b => this.reverseGet(ab.reverseGet(b)))
+  compose<C, D = C>(ac: Prism<A, C, B, D>): Prism<S, C, T, D> {
+    return new Prism(
+      s => this.getOrModify(s).chain(a => ac.getOrModify(a).bimap(b => this.set(b)(s), identity)),
+      b => this.reverseGet(ac.reverseGet(b))
+    )
   }
 
   /** @alias of `compose` */
-  composePrism<B>(ab: Prism<A, B>): Prism<S, B> {
-    return this.compose(ab)
+  composePrism<C, D = C>(ac: Prism<A, C, B, D>): Prism<S, C, T, D> {
+    return this.compose(ac)
   }
 
   /** compose a Prism with a Optional */
-  composeOptional<B>(ab: Optional<A, B>): Optional<S, B> {
-    return this.asOptional().compose(ab)
+  composeOptional<C, D = C>(ac: Optional<A, C, B, D>): Optional<S, C, T, D> {
+    return this.asOptional().compose(ac)
   }
 
   /** compose a Prism with a Traversal */
-  composeTraversal<B>(ab: Traversal<A, B>): Traversal<S, B> {
-    return this.asTraversal().compose(ab)
+  composeTraversal<C, D = C>(ac: Traversal<A, C, B, D>): Traversal<S, C, T, D> {
+    return this.asTraversal().compose(ac)
   }
 
   /** compose a Prism with a Fold */
-  composeFold<B>(ab: Fold<A, B>): Fold<S, B> {
-    return this.asFold().compose(ab)
+  composeFold<C>(ac: Fold<A, C>): Fold<S, C> {
+    return this.asFold().compose(ac)
   }
 
   /** compose a Prism with a Setter */
-  composeSetter<B>(ab: Setter<A, B>): Setter<S, B> {
-    return this.asSetter().compose(ab)
+  composeSetter<C, D = C>(ac: Setter<A, C, B, D>): Setter<S, C, T, D> {
+    return this.asSetter().compose(ac)
   }
 
   /** compose a Prism with a Iso */
-  composeIso<B>(ab: Iso<A, B>): Prism<S, B> {
-    return this.compose(ab.asPrism())
+  composeIso<C, D = C>(ac: Iso<A, C, B, D>): Prism<S, C, T, D> {
+    return this.compose(ac.asPrism())
   }
 
   /** compose a Prism with a Lens */
-  composeLens<B>(ab: Lens<A, B>): Optional<S, B> {
-    return this.asOptional().compose(ab.asOptional())
+  composeLens<C, D = C>(ac: Lens<A, C, B, D>): Optional<S, C, T, D> {
+    return this.asOptional().compose(ac.asOptional())
   }
 
   /** compose a Prism with a Getter */
-  composeGetter<B>(ab: Getter<A, B>): Fold<S, B> {
-    return this.asFold().compose(ab.asFold())
+  composeGetter<C>(ac: Getter<A, C>): Fold<S, C> {
+    return this.asFold().compose(ac.asFold())
   }
 }
 
-const somePrism = new Prism<Option<any>, any>(identity, some)
+const somePrism: Prism<Option<any>, any> = new Prism(
+  s => s.foldL<Either<Option<any>, any>>(() => left(none), right),
+  some
+)
 
 function optionalFromNullableProp<S, K extends keyof S>(k: K): Optional<S, NonNullable<S[K]>> {
-  return new Optional((s: any) => fromNullable(s[k]), a => s => update(s, k, a))
+  return new Optional((s: any) => fromNullable(s[k]).foldL(() => left(s), right), a => s => update(s, k, a))
 }
 
 type OptionPropertyNames<S> = { [K in keyof S]-?: S[K] extends Option<any> ? K : never }[keyof S]
@@ -525,9 +528,9 @@ function optionalFromOptionProp<S, K extends OptionPropertyNames<S>>(k: K): Opti
   2. getOption(set(a)(s)) = getOption(s).map(_ => a)
   3. set(a)(set(a)(s)) = set(a)(s)
 */
-export class Optional<S, A> {
+export class Optional<S, A, T = S, B = A> {
   readonly _tag: 'Optional' = 'Optional'
-  constructor(readonly getOption: (s: S) => Option<A>, readonly set: (a: A) => (s: S) => S) {}
+  constructor(readonly getOrModify: (s: S) => Either<T, A>, readonly set: (b: B) => (s: S) => T) {}
 
   /**
    * @example
@@ -612,22 +615,22 @@ export class Optional<S, A> {
     return arguments.length === 0 ? optionalFromOptionProp : optionalFromOptionProp<any, any>(arguments[0])
   }
 
-  modify(f: (a: A) => A): (s: S) => S {
-    return s => this.modifyOption(f)(s).getOrElse(s)
+  getOption(s: S): Option<A> {
+    return this.getOrModify(s).fold(constant(none), some)
   }
 
-  modifyOption(f: (a: A) => A): (s: S) => Option<S> {
-    return s =>
-      this.getOption(s).map(a => {
-        const n = f(a)
-        return n === a ? s : this.set(n)(s)
-      })
+  modify(f: (a: A) => B): (s: S) => T {
+    return s => this.getOrModify(s).fold(identity, v => this.set(f(v))(s))
+  }
+
+  modifyOption(f: (a: A) => B): (s: S) => Option<T> {
+    return s => this.getOption(s).map(a => this.set(f(a))(s))
   }
 
   /** view a Optional as a Traversal */
-  asTraversal(): Traversal<S, A> {
-    return new Traversal(<F>(F: Applicative<F>) => (f: (a: A) => HKT<F, A>) => (s: S) =>
-      this.getOption(s).foldL(() => F.of(s), a => F.map(f(a), (a: A) => this.set(a)(s)))
+  asTraversal(): Traversal<S, A, T, B> {
+    return new Traversal(<F>(F: Applicative<F>) => (f: (a: A) => HKT<F, B>) => (s: S) =>
+      this.getOrModify(s).fold(F.of, a => F.map(f(a), (b: B) => this.set(b)(s)))
     )
   }
 
@@ -637,78 +640,81 @@ export class Optional<S, A> {
   }
 
   /** view an Optional as a Setter */
-  asSetter(): Setter<S, A> {
+  asSetter(): Setter<S, A, T, B> {
     return new Setter(f => this.modify(f))
   }
 
   /** compose a Optional with a Optional */
-  compose<B>(ab: Optional<A, B>): Optional<S, B> {
-    return new Optional<S, B>(s => this.getOption(s).chain(a => ab.getOption(a)), b => this.modify(ab.set(b)))
+  compose<C, D = C>(ac: Optional<A, C, B, D>): Optional<S, C, T, D> {
+    return new Optional<S, C, T, D>(
+      s => this.getOrModify(s).chain(a => ac.getOrModify(a).bimap(b => this.set(b)(s), identity)),
+      b => this.modify(ac.set(b))
+    )
   }
 
   /** @alias of `compose` */
-  composeOptional<B>(ab: Optional<A, B>): Optional<S, B> {
-    return this.compose(ab)
+  composeOptional<C, D = C>(ac: Optional<A, C, B, D>): Optional<S, C, T, D> {
+    return this.compose(ac)
   }
 
   /** compose an Optional with a Traversal */
-  composeTraversal<B>(ab: Traversal<A, B>): Traversal<S, B> {
-    return this.asTraversal().compose(ab)
+  composeTraversal<C, D = C>(ac: Traversal<A, C, B, D>): Traversal<S, C, T, D> {
+    return this.asTraversal().compose(ac)
   }
 
   /** compose an Optional with a Fold */
-  composeFold<B>(ab: Fold<A, B>): Fold<S, B> {
-    return this.asFold().compose(ab)
+  composeFold<C>(ac: Fold<A, C>): Fold<S, C> {
+    return this.asFold().compose(ac)
   }
 
   /** compose an Optional with a Setter */
-  composeSetter<B>(ab: Setter<A, B>): Setter<S, B> {
-    return this.asSetter().compose(ab)
+  composeSetter<C, D = C>(ac: Setter<A, C, B, D>): Setter<S, C, T, D> {
+    return this.asSetter().compose(ac)
   }
 
   /** compose an Optional with a Lens */
-  composeLens<B>(ab: Lens<A, B>): Optional<S, B> {
-    return this.compose(ab.asOptional())
+  composeLens<C, D = C>(ac: Lens<A, C, B, D>): Optional<S, C, T, D> {
+    return this.compose(ac.asOptional())
   }
 
   /** compose an Optional with a Prism */
-  composePrism<B>(ab: Prism<A, B>): Optional<S, B> {
-    return this.compose(ab.asOptional())
+  composePrism<C, D = C>(ac: Prism<A, C, B, D>): Optional<S, C, T, D> {
+    return this.compose(ac.asOptional())
   }
 
   /** compose an Optional with a Iso */
-  composeIso<B>(ab: Iso<A, B>): Optional<S, B> {
-    return this.compose(ab.asOptional())
+  composeIso<C, D = C>(ac: Iso<A, C, B, D>): Optional<S, C, T, D> {
+    return this.compose(ac.asOptional())
   }
 
   /** compose an Optional with a Getter */
-  composeGetter<B>(ab: Getter<A, B>): Fold<S, B> {
-    return this.asFold().compose(ab.asFold())
+  composeGetter<C>(ac: Getter<A, C>): Fold<S, C> {
+    return this.asFold().compose(ac.asFold())
   }
 }
 
-export interface ModifyF<S, A> {
-  <F extends URIS3>(F: Applicative3<F>): <U, L>(f: (a: A) => Type3<F, U, L, A>) => (s: S) => Type3<F, U, L, S>
-  <F extends URIS3, U, L>(F: Applicative3C<F, U, L>): (f: (a: A) => Type3<F, U, L, A>) => (s: S) => Type3<F, U, L, S>
-  <F extends URIS2>(F: Applicative2<F>): <L>(f: (a: A) => Type2<F, L, A>) => (s: S) => Type2<F, L, S>
-  <F extends URIS2, L>(F: Applicative2C<F, L>): (f: (a: A) => Type2<F, L, A>) => (s: S) => Type2<F, L, S>
-  <F extends URIS>(F: Applicative1<F>): (f: (a: A) => Type<F, A>) => (s: S) => Type<F, S>
-  <F>(F: Applicative<F>): (f: (a: A) => HKT<F, A>) => (s: S) => HKT<F, S>
+export interface ModifyF<S, A, T = S, B = A> {
+  <F extends URIS3>(F: Applicative3<F>): <U, L>(f: (a: A) => Type3<F, U, L, B>) => (s: S) => Type3<F, U, L, T>
+  <F extends URIS3, U, L>(F: Applicative3C<F, U, L>): (f: (a: A) => Type3<F, U, L, B>) => (s: S) => Type3<F, U, L, T>
+  <F extends URIS2>(F: Applicative2<F>): <L>(f: (a: A) => Type2<F, L, B>) => (s: S) => Type2<F, L, T>
+  <F extends URIS2, L>(F: Applicative2C<F, L>): (f: (a: A) => Type2<F, L, B>) => (s: S) => Type2<F, L, T>
+  <F extends URIS>(F: Applicative1<F>): (f: (a: A) => Type<F, B>) => (s: S) => Type<F, T>
+  <F>(F: Applicative<F>): (f: (a: A) => HKT<F, B>) => (s: S) => HKT<F, T>
 }
 
-export class Traversal<S, A> {
+export class Traversal<S, A, T = S, B = A> {
   readonly _tag: 'Traversal' = 'Traversal'
   constructor(
     // Van Laarhoven representation
-    readonly modifyF: ModifyF<S, A>
+    readonly modifyF: ModifyF<S, A, T, B>
   ) {}
 
-  modify(f: (a: A) => A): (s: S) => S {
+  modify(f: (a: A) => B): (s: S) => T {
     return s => this.modifyF(id)(a => id.of(f(a)))(s).extract()
   }
 
-  set(a: A): (s: S) => S {
-    return this.modify(constant(a))
+  set(b: B): (s: S) => T {
+    return this.modify(constant(b))
   }
 
   /**
@@ -732,9 +738,9 @@ export class Traversal<S, A> {
    *
    * assert.deepStrictEqual(actual, [{name: 'bill', cool: true}, {name: 'jill', cool: true}])
    */
-  filter<B extends A>(refinement: Refinement<A, B>): Traversal<S, B>
-  filter(predicate: Predicate<A>): Traversal<S, A>
-  filter(predicate: Predicate<A>): Traversal<S, A> {
+  filter<C extends A>(this: Traversal<S, A>, refinement: Refinement<A, C>): Traversal<S, C>
+  filter(this: Traversal<S, A>, predicate: Predicate<A>): Traversal<S, A>
+  filter(this: Traversal<S, A>, predicate: Predicate<A>): Traversal<S, A> {
     return this.composePrism(Prism.fromPredicate(predicate))
   }
 
@@ -746,53 +752,55 @@ export class Traversal<S, A> {
   }
 
   /** view a Traversal as a Setter */
-  asSetter(): Setter<S, A> {
+  asSetter(): Setter<S, A, T, B> {
     return new Setter(f => this.modify(f))
   }
 
   /** compose a Traversal with a Traversal */
-  compose<B>(ab: Traversal<A, B>): Traversal<S, B> {
-    return new Traversal<S, B>(<F>(F: Applicative<F>) => (f: (a: B) => HKT<F, B>) => this.modifyF(F)(ab.modifyF(F)(f)))
+  compose<C, D = C>(ac: Traversal<A, C, B, D>): Traversal<S, C, T, D> {
+    return new Traversal<S, C, T, D>(<F>(F: Applicative<F>) => (f: (a: C) => HKT<F, D>) =>
+      this.modifyF(F)(ac.modifyF(F)(f))
+    )
   }
 
   /** @alias of `compose` */
-  composeTraversal<B>(ab: Traversal<A, B>): Traversal<S, B> {
-    return this.compose(ab)
+  composeTraversal<C, D = C>(ac: Traversal<A, C, B, D>): Traversal<S, C, T, D> {
+    return this.compose(ac)
   }
 
   /** compose a Traversal with a Fold */
-  composeFold<B>(ab: Fold<A, B>): Fold<S, B> {
-    return this.asFold().compose(ab)
+  composeFold<C>(ac: Fold<A, C>): Fold<S, C> {
+    return this.asFold().compose(ac)
   }
 
   /** compose a Traversal with a Setter */
-  composeSetter<B>(ab: Setter<A, B>): Setter<S, B> {
-    return this.asSetter().compose(ab)
+  composeSetter<C, D = C>(ac: Setter<A, C, B, D>): Setter<S, C, T, D> {
+    return this.asSetter().compose(ac)
   }
 
   /** compose a Traversal with a Optional */
-  composeOptional<B>(ab: Optional<A, B>): Traversal<S, B> {
-    return this.compose(ab.asTraversal())
+  composeOptional<C, D = C>(ac: Optional<A, C, B, D>): Traversal<S, C, T, D> {
+    return this.compose(ac.asTraversal())
   }
 
   /** compose a Traversal with a Lens */
-  composeLens<B>(ab: Lens<A, B>): Traversal<S, B> {
-    return this.compose(ab.asTraversal())
+  composeLens<C, D = C>(ac: Lens<A, C, B, D>): Traversal<S, C, T, D> {
+    return this.compose(ac.asTraversal())
   }
 
   /** compose a Traversal with a Prism */
-  composePrism<B>(ab: Prism<A, B>): Traversal<S, B> {
-    return this.compose(ab.asTraversal())
+  composePrism<C, D = C>(ac: Prism<A, C, B, D>): Traversal<S, C, T, D> {
+    return this.compose(ac.asTraversal())
   }
 
   /** compose a Traversal with a Iso */
-  composeIso<B>(ab: Iso<A, B>): Traversal<S, B> {
+  composeIso<C, D = C>(ab: Iso<A, C, B, D>): Traversal<S, C, T, D> {
     return this.compose(ab.asTraversal())
   }
 
   /** compose a Traversal with a Getter */
-  composeGetter<B>(ab: Getter<A, B>): Fold<S, B> {
-    return this.asFold().compose(ab.asFold())
+  composeGetter<C>(ac: Getter<A, C>): Fold<S, C> {
+    return this.asFold().compose(ac.asFold())
   }
 }
 
@@ -939,47 +947,47 @@ export class Fold<S, A> {
   }
 }
 
-export class Setter<S, A> {
+export class Setter<S, A, T = S, B = A> {
   readonly _tag: 'Setter' = 'Setter'
-  constructor(readonly modify: (f: (a: A) => A) => (s: S) => S) {}
+  constructor(readonly modify: (f: (a: A) => B) => (s: S) => T) {}
 
-  set(a: A): (s: S) => S {
-    return this.modify(constant(a))
+  set(b: B): (s: S) => T {
+    return this.modify(constant(b))
   }
 
   /** compose a Setter with a Setter */
-  compose<B>(ab: Setter<A, B>): Setter<S, B> {
-    return new Setter(f => this.modify(ab.modify(f)))
+  compose<C, D = C>(ac: Setter<A, C, B, D>): Setter<S, C, T, D> {
+    return new Setter(f => this.modify(ac.modify(f)))
   }
 
   /** @alias of `compose` */
-  composeSetter<B>(ab: Setter<A, B>): Setter<S, B> {
-    return this.compose(ab)
+  composeSetter<C, D = C>(ac: Setter<A, C, B, D>): Setter<S, C, T, D> {
+    return this.compose(ac)
   }
 
   /** compose a Setter with a Traversal */
-  composeTraversal<B>(ab: Traversal<A, B>): Setter<S, B> {
-    return this.compose(ab.asSetter())
+  composeTraversal<C, D = C>(ac: Traversal<A, C, B, D>): Setter<S, C, T, D> {
+    return this.compose(ac.asSetter())
   }
 
   /** compose a Setter with a Optional */
-  composeOptional<B>(ab: Optional<A, B>): Setter<S, B> {
-    return this.compose(ab.asSetter())
+  composeOptional<C, D = C>(ac: Optional<A, C, B, D>): Setter<S, C, T, D> {
+    return this.compose(ac.asSetter())
   }
 
   /** compose a Setter with a Lens */
-  composeLens<B>(ab: Lens<A, B>): Setter<S, B> {
-    return this.compose(ab.asSetter())
+  composeLens<C, D = C>(ac: Lens<A, C, B, D>): Setter<S, C, T, D> {
+    return this.compose(ac.asSetter())
   }
 
   /** compose a Setter with a Prism */
-  composePrism<B>(ab: Prism<A, B>): Setter<S, B> {
-    return this.compose(ab.asSetter())
+  composePrism<C, D = C>(ac: Prism<A, C, B, D>): Setter<S, C, T, D> {
+    return this.compose(ac.asSetter())
   }
 
   /** compose a Setter with a Iso */
-  composeIso<B>(ab: Iso<A, B>): Setter<S, B> {
-    return this.compose(ab.asSetter())
+  composeIso<C, D = C>(ac: Iso<A, C, B, D>): Setter<S, C, T, D> {
+    return this.compose(ac.asSetter())
   }
 }
 
@@ -1016,17 +1024,23 @@ export class Setter<S, A> {
  *
  * assert.deepStrictEqual(actual, { tweets: [ { text: 'dlrow olleh' }, { text: 'raboof' } ] })
  */
-export function fromTraversable<T extends URIS3>(T: Traversable3<T>): <U, L, A>() => Traversal<Type3<T, U, L, A>, A>
-export function fromTraversable<T extends URIS2>(T: Traversable2<T>): <L, A>() => Traversal<Type2<T, L, A>, A>
-export function fromTraversable<T extends URIS>(T: Traversable1<T>): <A>() => Traversal<Type<T, A>, A>
+export function fromTraversable<T extends URIS3>(
+  T: Traversable3<T>
+): <U, L, A, B = A>() => Traversal<Type3<T, U, L, A>, A, Type3<T, U, L, B>, B>
+export function fromTraversable<T extends URIS2>(
+  T: Traversable2<T>
+): <L, A, B = A>() => Traversal<Type2<T, L, A>, A, Type2<T, L, B>, B>
+export function fromTraversable<T extends URIS>(
+  T: Traversable1<T>
+): <A, B = A>() => Traversal<Type<T, A>, A, Type<T, B>, B>
 // tslint:disable-next-line: deprecation
 export function fromTraversable<T>(T: Traversable<T>): <A>() => Traversal<HKT<T, A>, A>
 // tslint:disable-next-line: deprecation
-export function fromTraversable<T>(T: Traversable<T>): <A>() => Traversal<HKT<T, A>, A> {
-  return <A>() =>
+export function fromTraversable<T>(T: Traversable<T>): <A, B = A>() => Traversal<HKT<T, A>, A, HKT<T, B>, B> {
+  return <A, B = A>() =>
     new Traversal(<F>(F: Applicative<F>) => {
       const traverseF = T.traverse(F)
-      return (f: (a: A) => HKT<F, A>) => (s: HKT<T, A>) => traverseF(s, f)
+      return (f: (a: A) => HKT<F, B>) => (s: HKT<T, A>) => traverseF(s, f)
     })
 }
 
