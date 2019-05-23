@@ -10,6 +10,6 @@ const len = (s: string) => s.length
 console.log(fold.foldMap(monoidSum)(len)(xs))
 console.log(fold.foldMap(monoidProduct)(len)(xs))
 
-import * as either from 'fp-ts/lib/Either'
+import { either } from 'fp-ts/lib/Either'
 
 const fold2 = fromFoldable(either)<boolean, string>()
