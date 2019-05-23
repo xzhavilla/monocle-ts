@@ -21,9 +21,9 @@ export declare class Iso<S, A, T = S, B = A> {
     /** view an Iso as a Lens */
     asLens(): Lens<S, A, T, B>;
     /** view an Iso as a Prism */
-    asPrism(): Prism<S, A, T, B>;
+    asPrism(): PPrism<S, A, T, B>;
     /** view an Iso as a Optional */
-    asOptional(): Optional<S, A, T, B>;
+    asOptional(): POptional<S, A, T, B>;
     /** view an Iso as a Traversal */
     asTraversal(): Traversal<S, A, T, B>;
     /** view an Iso as a Fold */
@@ -39,9 +39,9 @@ export declare class Iso<S, A, T = S, B = A> {
     /** compose an Iso with a Lens */
     composeLens<C, D = C>(ac: Lens<A, C, B, D>): Lens<S, C, T, D>;
     /** compose an Iso with a Prism */
-    composePrism<C, D = C>(ac: Prism<A, C, B, D>): Prism<S, C, T, D>;
+    composePrism<C, D = C>(ac: PPrism<A, C, B, D>): PPrism<S, C, T, D>;
     /** compose an Iso with an Optional */
-    composeOptional<C, D = C>(ac: Optional<A, C, B, D>): Optional<S, C, T, D>;
+    composeOptional<C, D = C>(ac: POptional<A, C, B, D>): POptional<S, C, T, D>;
     /** compose an Iso with a Traversal */
     composeTraversal<C, D = C>(ac: Traversal<A, C, B, D>): Traversal<S, C, T, D>;
     /** compose an Iso with a Fold */
@@ -162,7 +162,7 @@ export declare class Lens<S, A, T = S, B = A> {
     static fromNullableProp<S, A extends S[K], K extends keyof S>(k: K, defaultValue: A): Lens<S, NonNullable<S[K]>>;
     modify(f: (a: A) => B): (s: S) => T;
     /** view a Lens as a Optional */
-    asOptional(): Optional<S, A, T, B>;
+    asOptional(): POptional<S, A, T, B>;
     /** view a Lens as a Traversal */
     asTraversal(): Traversal<S, A, T, B>;
     /** view a Lens as a Setter */
@@ -180,7 +180,7 @@ export declare class Lens<S, A, T = S, B = A> {
     /** compose a Lens with a Fold */
     composeFold<B>(ab: Fold<A, B>): Fold<S, B>;
     /** compose a Lens with an Optional */
-    composeOptional<C, D = C>(ac: Optional<A, C, B, D>): Optional<S, C, T, D>;
+    composeOptional<C, D = C>(ac: POptional<A, C, B, D>): POptional<S, C, T, D>;
     /** compose a Lens with an Traversal */
     composeTraversal<C, D = C>(ac: Traversal<A, C, B, D>): Traversal<S, C, T, D>;
     /** compose a Lens with an Setter */
@@ -188,28 +188,28 @@ export declare class Lens<S, A, T = S, B = A> {
     /** compose a Lens with an Iso */
     composeIso<C, D = C>(ac: Iso<A, C, B, D>): Lens<S, C, T, D>;
     /** compose a Lens with a Prism */
-    composePrism<C, D = C>(ac: Prism<A, C, B, D>): Optional<S, C, T, D>;
+    composePrism<C, D = C>(ac: PPrism<A, C, B, D>): POptional<S, C, T, D>;
 }
-export declare class Prism<S, A, T = S, B = A> {
+export declare class PPrism<S, A, T = S, B = A> {
     readonly getOrModify: (s: S) => Either<T, A>;
     readonly reverseGet: (b: B) => T;
     readonly _tag: 'Prism';
     constructor(getOrModify: (s: S) => Either<T, A>, reverseGet: (b: B) => T);
-    static fromPredicate<S, A extends S>(refinement: Refinement<S, A>): Prism<S, A>;
-    static fromPredicate<A>(predicate: Predicate<A>): Prism<A, A>;
+    static fromPredicate<S, A extends S>(refinement: Refinement<S, A>): PPrism<S, A>;
+    static fromPredicate<A>(predicate: Predicate<A>): PPrism<A, A>;
     /**
      * Use `fromPredicate` instead
      * @deprecated
      */
-    static fromRefinement<S, A extends S>(refinement: Refinement<S, A>): Prism<S, A>;
-    static some<A, B = A>(): Prism<Option<A>, A, Option<B>, B>;
+    static fromRefinement<S, A extends S>(refinement: Refinement<S, A>): PPrism<S, A>;
+    static some<A, B = A>(): PPrism<Option<A>, A, Option<B>, B>;
     getOption(s: S): Option<A>;
     modify(f: (a: A) => B): (s: S) => T;
     modifyOption(f: (a: A) => B): (s: S) => Option<T>;
     /** set the target of a Prism with a value */
     set(b: B): (s: S) => T;
     /** view a Prism as a Optional */
-    asOptional(): Optional<S, A, T, B>;
+    asOptional(): POptional<S, A, T, B>;
     /** view a Prism as a Traversal */
     asTraversal(): Traversal<S, A, T, B>;
     /** view a Prism as a Setter */
@@ -217,11 +217,11 @@ export declare class Prism<S, A, T = S, B = A> {
     /** view a Prism as a Fold */
     asFold(): Fold<S, A>;
     /** compose a Prism with a Prism */
-    compose<C, D = C>(ac: Prism<A, C, B, D>): Prism<S, C, T, D>;
+    compose<C, D = C>(ac: PPrism<A, C, B, D>): PPrism<S, C, T, D>;
     /** @alias of `compose` */
-    composePrism<C, D = C>(ac: Prism<A, C, B, D>): Prism<S, C, T, D>;
+    composePrism<C, D = C>(ac: PPrism<A, C, B, D>): PPrism<S, C, T, D>;
     /** compose a Prism with a Optional */
-    composeOptional<C, D = C>(ac: Optional<A, C, B, D>): Optional<S, C, T, D>;
+    composeOptional<C, D = C>(ac: POptional<A, C, B, D>): POptional<S, C, T, D>;
     /** compose a Prism with a Traversal */
     composeTraversal<C, D = C>(ac: Traversal<A, C, B, D>): Traversal<S, C, T, D>;
     /** compose a Prism with a Fold */
@@ -229,17 +229,20 @@ export declare class Prism<S, A, T = S, B = A> {
     /** compose a Prism with a Setter */
     composeSetter<C, D = C>(ac: Setter<A, C, B, D>): Setter<S, C, T, D>;
     /** compose a Prism with a Iso */
-    composeIso<C, D = C>(ac: Iso<A, C, B, D>): Prism<S, C, T, D>;
+    composeIso<C, D = C>(ac: Iso<A, C, B, D>): PPrism<S, C, T, D>;
     /** compose a Prism with a Lens */
-    composeLens<C, D = C>(ac: Lens<A, C, B, D>): Optional<S, C, T, D>;
+    composeLens<C, D = C>(ac: Lens<A, C, B, D>): POptional<S, C, T, D>;
     /** compose a Prism with a Getter */
     composeGetter<C>(ac: Getter<A, C>): Fold<S, C>;
+}
+export declare class Prism<S, A> extends PPrism<S, A, S, A> {
+    constructor(getOption: (s: S) => Option<A>, reverseGet: (b: A) => S);
 }
 declare type OptionPropertyNames<S, T> = {
     [K in keyof S & keyof T]-?: S[K] extends Option<any> ? K : never;
 }[keyof S & keyof T];
 declare type OptionPropertyType<S, T, K extends OptionPropertyNames<S, T>> = S[K] extends Option<infer A> ? A : never;
-export declare class Optional<S, A, T = S, B = A> {
+export declare class POptional<S, A, T = S, B = A> {
     readonly getOrModify: (s: S) => Either<T, A>;
     readonly set: (b: B) => (s: S) => T;
     readonly _tag: 'Optional';
@@ -288,8 +291,8 @@ export declare class Optional<S, A, T = S, B = A> {
      * numberFromResponse.getOption(response1) // some('555-1234')
      * numberFromResponse.getOption(response2) // none
      */
-    static fromNullableProp<S, T = S>(): <K extends keyof S & keyof T>(k: K) => Optional<S, NonNullable<S[K]>, T, NonNullable<T[K]>>;
-    static fromNullableProp<S, A extends S[K], K extends keyof S>(k: K): Optional<S, NonNullable<S[K]>>;
+    static fromNullableProp<S, T = S>(): <K extends keyof S & keyof T>(k: K) => POptional<S, NonNullable<S[K]>, T, NonNullable<T[K]>>;
+    static fromNullableProp<S, A extends S[K], K extends keyof S>(k: K): POptional<S, NonNullable<S[K]>>;
     /**
      * @example
      * import { Optional, Lens } from 'monocle-ts'
@@ -317,8 +320,8 @@ export declare class Optional<S, A, T = S, B = A> {
      *   .compose(phone)
      *   .composeLens(number)
      */
-    static fromOptionProp<S, T = S>(): <P extends OptionPropertyNames<S, T>>(prop: P) => Optional<S, OptionPropertyType<S, T, P>>;
-    static fromOptionProp<S, T = S>(prop: OptionPropertyNames<S, T>): Optional<S, OptionPropertyType<S, T, typeof prop>>;
+    static fromOptionProp<S, T = S>(): <P extends OptionPropertyNames<S, T>>(prop: P) => POptional<S, OptionPropertyType<S, T, P>>;
+    static fromOptionProp<S, T = S>(prop: OptionPropertyNames<S, T>): POptional<S, OptionPropertyType<S, T, typeof prop>>;
     getOption(s: S): Option<A>;
     modify(f: (a: A) => B): (s: S) => T;
     modifyOption(f: (a: A) => B): (s: S) => Option<T>;
@@ -329,9 +332,9 @@ export declare class Optional<S, A, T = S, B = A> {
     /** view an Optional as a Setter */
     asSetter(): Setter<S, A, T, B>;
     /** compose a Optional with a Optional */
-    compose<C, D = C>(ac: Optional<A, C, B, D>): Optional<S, C, T, D>;
+    compose<C, D = C>(ac: POptional<A, C, B, D>): POptional<S, C, T, D>;
     /** @alias of `compose` */
-    composeOptional<C, D = C>(ac: Optional<A, C, B, D>): Optional<S, C, T, D>;
+    composeOptional<C, D = C>(ac: POptional<A, C, B, D>): POptional<S, C, T, D>;
     /** compose an Optional with a Traversal */
     composeTraversal<C, D = C>(ac: Traversal<A, C, B, D>): Traversal<S, C, T, D>;
     /** compose an Optional with a Fold */
@@ -339,13 +342,16 @@ export declare class Optional<S, A, T = S, B = A> {
     /** compose an Optional with a Setter */
     composeSetter<C, D = C>(ac: Setter<A, C, B, D>): Setter<S, C, T, D>;
     /** compose an Optional with a Lens */
-    composeLens<C, D = C>(ac: Lens<A, C, B, D>): Optional<S, C, T, D>;
+    composeLens<C, D = C>(ac: Lens<A, C, B, D>): POptional<S, C, T, D>;
     /** compose an Optional with a Prism */
-    composePrism<C, D = C>(ac: Prism<A, C, B, D>): Optional<S, C, T, D>;
+    composePrism<C, D = C>(ac: PPrism<A, C, B, D>): POptional<S, C, T, D>;
     /** compose an Optional with a Iso */
-    composeIso<C, D = C>(ac: Iso<A, C, B, D>): Optional<S, C, T, D>;
+    composeIso<C, D = C>(ac: Iso<A, C, B, D>): POptional<S, C, T, D>;
     /** compose an Optional with a Getter */
     composeGetter<C>(ac: Getter<A, C>): Fold<S, C>;
+}
+export declare class Optional<S, A> extends POptional<S, A, S, A> {
+    constructor(getOption: (s: S) => Option<A>, set: (a: A) => (s: S) => S);
 }
 export interface ModifyF<S, A, T = S, B = A> {
     <F extends URIS3>(F: Applicative3<F>): <U, L>(f: (a: A) => Type3<F, U, L, B>) => (s: S) => Type3<F, U, L, T>;
@@ -397,11 +403,11 @@ export declare class Traversal<S, A, T = S, B = A> {
     /** compose a Traversal with a Setter */
     composeSetter<C, D = C>(ac: Setter<A, C, B, D>): Setter<S, C, T, D>;
     /** compose a Traversal with a Optional */
-    composeOptional<C, D = C>(ac: Optional<A, C, B, D>): Traversal<S, C, T, D>;
+    composeOptional<C, D = C>(ac: POptional<A, C, B, D>): Traversal<S, C, T, D>;
     /** compose a Traversal with a Lens */
     composeLens<C, D = C>(ac: Lens<A, C, B, D>): Traversal<S, C, T, D>;
     /** compose a Traversal with a Prism */
-    composePrism<C, D = C>(ac: Prism<A, C, B, D>): Traversal<S, C, T, D>;
+    composePrism<C, D = C>(ac: PPrism<A, C, B, D>): Traversal<S, C, T, D>;
     /** compose a Traversal with a Iso */
     composeIso<C, D = C>(ab: Iso<A, C, B, D>): Traversal<S, C, T, D>;
     /** compose a Traversal with a Getter */
@@ -415,9 +421,9 @@ export declare class At<S, I, A> {
     fromIso<T>(iso: Iso<T, S>): At<T, I, A>;
 }
 export declare class Index<S, I, A> {
-    readonly index: (i: I) => Optional<S, A>;
+    readonly index: (i: I) => POptional<S, A>;
     readonly _tag: 'Index';
-    constructor(index: (i: I) => Optional<S, A>);
+    constructor(index: (i: I) => POptional<S, A>);
     static fromAt<T, J, B>(at: At<T, J, Option<B>>): Index<T, J, B>;
     /** lift an instance of `Index` using an `Iso` */
     fromIso<T>(iso: Iso<T, S>): Index<T, I, A>;
@@ -441,9 +447,9 @@ export declare class Getter<S, A> {
     /** compose a Getter with a Optional */
     composeTraversal<B>(ab: Traversal<A, B>): Fold<S, B>;
     /** compose a Getter with a Optional */
-    composeOptional<B>(ab: Optional<A, B>): Fold<S, B>;
+    composeOptional<B>(ab: POptional<A, B>): Fold<S, B>;
     /** compose a Getter with a Prism */
-    composePrism<B>(ab: Prism<A, B>): Fold<S, B>;
+    composePrism<B>(ab: PPrism<A, B>): Fold<S, B>;
 }
 export declare class Fold<S, A> {
     readonly foldMap: <M>(M: Monoid<M>) => (f: (a: A) => M) => (s: S) => M;
@@ -465,11 +471,11 @@ export declare class Fold<S, A> {
     /** compose a Fold with a Traversal */
     composeTraversal<B>(ab: Traversal<A, B>): Fold<S, B>;
     /** compose a Fold with a Optional */
-    composeOptional<B>(ab: Optional<A, B>): Fold<S, B>;
+    composeOptional<B>(ab: POptional<A, B>): Fold<S, B>;
     /** compose a Fold with a Lens */
     composeLens<B>(ab: Lens<A, B>): Fold<S, B>;
     /** compose a Fold with a Prism */
-    composePrism<B>(ab: Prism<A, B>): Fold<S, B>;
+    composePrism<B>(ab: PPrism<A, B>): Fold<S, B>;
     /** compose a Fold with a Iso */
     composeIso<B>(ab: Iso<A, B>): Fold<S, B>;
     /** find the first target of a Fold matching the predicate */
@@ -490,11 +496,11 @@ export declare class Setter<S, A, T = S, B = A> {
     /** compose a Setter with a Traversal */
     composeTraversal<C, D = C>(ac: Traversal<A, C, B, D>): Setter<S, C, T, D>;
     /** compose a Setter with a Optional */
-    composeOptional<C, D = C>(ac: Optional<A, C, B, D>): Setter<S, C, T, D>;
+    composeOptional<C, D = C>(ac: POptional<A, C, B, D>): Setter<S, C, T, D>;
     /** compose a Setter with a Lens */
     composeLens<C, D = C>(ac: Lens<A, C, B, D>): Setter<S, C, T, D>;
     /** compose a Setter with a Prism */
-    composePrism<C, D = C>(ac: Prism<A, C, B, D>): Setter<S, C, T, D>;
+    composePrism<C, D = C>(ac: PPrism<A, C, B, D>): Setter<S, C, T, D>;
     /** compose a Setter with a Iso */
     composeIso<C, D = C>(ac: Iso<A, C, B, D>): Setter<S, C, T, D>;
 }
