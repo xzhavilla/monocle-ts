@@ -31,10 +31,10 @@ type Options = OptionPropertyNames<Person> // $ExpectType "email"
 // Lens.fromProp
 //
 
-Lens.fromProp<Person, 'name'>('name') // $ExpectType Lens<Person, string>
-Lens.fromProp<Person>()('name') // $ExpectType Lens<Person, string>
+Lens.fromProp<Person, 'name'>('name') // $ExpectType Lens<Person, string, Person, string>
+Lens.fromProp<Person>()('name') // $ExpectType Lens<Person, string, Person, string>
 const getLensFromProp = <T extends Person>(): Lens<T, string> => Lens.fromProp<T, 'name'>('name')
-Lens.fromProp<ConstrainedRecord>()('a') // $ExpectType Lens<ConstrainedRecord, number>
+Lens.fromProp<ConstrainedRecord>()('a') // $ExpectType Lens<ConstrainedRecord, number, ConstrainedRecord, number>
 
 // $ExpectError
 Lens.fromProp<Person, 'foo'>(['foo'])
@@ -45,9 +45,9 @@ Lens.fromProp<Person, 'name'>(['foo'])
 // Lens.fromProps
 //
 
-Lens.fromProps<Person>()(['name', 'age']) // $ExpectType Lens<Person, { name: string; age: number; }>
+Lens.fromProps<Person>()(['name', 'age']) // $ExpectType Lens<Person, { name: string; age: number; }, Person, { name: string; age: number; }>
 const getLensFromProps = <T extends Person>(): Lens<T, { name: string }> => Lens.fromProps<T>()(['name'])
-Lens.fromProps<ConstrainedRecord>()(['a', 'b']) // $ExpectType Lens<ConstrainedRecord, { a: number; b: number; }>
+Lens.fromProps<ConstrainedRecord>()(['a', 'b']) // $ExpectType Lens<ConstrainedRecord, { a: number; b: number; }, ConstrainedRecord, { a: number; b: number; }>
 
 // $ExpectError
 Lens.fromProps<Person>()(['foo'])
@@ -67,7 +67,7 @@ interface FromPathBad {
   }
 }
 
-Lens.fromPath<Person>()(['a', 'b', 'c', 'd']) // $ExpectType Lens<Person, number>
+Lens.fromPath<Person>()(['a', 'b', 'c', 'd']) // $ExpectType Lens<Person, number, Person, number>
 Lens.fromPath<Person, 'a', 'b', 'c', 'd'>(['a', 'b', 'c', 'd'])
 const getLensFromPath = <T extends Person>(): Lens<T, number> => Lens.fromPath<T>()(['a', 'b', 'c', 'd'])
 
@@ -75,8 +75,8 @@ const getLensFromPath = <T extends Person>(): Lens<T, number> => Lens.fromPath<T
 // Lens.fromNullableProp
 //
 
-Lens.fromNullableProp<Person, string, 'bio'>('bio', 'foo') // $ExpectType Lens<Person, string>
-Lens.fromNullableProp<Person>()('bio', 'foo') // $ExpectType Lens<Person, string>
+Lens.fromNullableProp<Person, string, 'bio'>('bio', 'foo') // $ExpectType Lens<Person, string, Person, string>
+Lens.fromNullableProp<Person>()('bio', 'foo') // $ExpectType Lens<Person, string, Person, string>
 const getLensFromNullableProp = <T extends Person>(): Lens<T, NonNullable<T['bio']>> =>
   Lens.fromNullableProp<T>()('bio', 'foo')
 
@@ -84,8 +84,8 @@ const getLensFromNullableProp = <T extends Person>(): Lens<T, NonNullable<T['bio
 // Optional.fromNullableProp
 //
 
-Optional.fromNullableProp<Person>()('bio') // $ExpectType Optional<Person, string>
-Optional.fromNullableProp<Person, string, 'bio'>('bio') // $ExpectType Optional<Person, string>
+Optional.fromNullableProp<Person>()('bio') // $ExpectType Optional<Person, string, Person, string>
+Optional.fromNullableProp<Person, string, 'bio'>('bio') // $ExpectType Optional<Person, string, Person, string>
 const getOptionalFromNullableProp = <T extends Person>(): Optional<T, NonNullable<T['bio']>> =>
   Optional.fromNullableProp<T>()('bio')
 
@@ -93,8 +93,8 @@ const getOptionalFromNullableProp = <T extends Person>(): Optional<T, NonNullabl
 // Optional.fromOptionProp
 //
 
-Optional.fromOptionProp<Person>()('email') // $ExpectType Optional<Person, string>
-Optional.fromOptionProp<Person>('email') // $ExpectType Optional<Person, string>
+Optional.fromOptionProp<Person>()('email') // $ExpectType Optional<Person, string, Person, string>
+Optional.fromOptionProp<Person>('email') // $ExpectType Optional<Person, string, Person, string>
 // const getOptionalFromOptionProp = <T extends Person>(): Optional<T, string> => Optional.fromOptionProp<T>('email')
 
 // $ExpectError
@@ -117,7 +117,7 @@ interface Employment {
   phone: Option<Phone>
 }
 
-Optional.fromOptionProp<Employment>('phone') // $ExpectType Optional<Employment, Phone>
+Optional.fromOptionProp<Employment>('phone') // $ExpectType Optional<Employment, Phone, Employment, Phone>
 // $ExpectError
 Optional.fromOptionProp<Employment>('foo')
 
