@@ -127,22 +127,29 @@ export class Iso<S, A, T = S, B = A> {
   }
 }
 
-export interface LensFromPath<S> {
+export interface LensFromPath<S, T = S> {
   <
-    K1 extends keyof S,
-    K2 extends keyof S[K1],
-    K3 extends keyof S[K1][K2],
-    K4 extends keyof S[K1][K2][K3],
-    K5 extends keyof S[K1][K2][K3][K4]
+    K1 extends keyof S & keyof T,
+    K2 extends keyof S[K1] & keyof T[K1],
+    K3 extends keyof S[K1][K2] & keyof T[K1][K2],
+    K4 extends keyof S[K1][K2][K3] & keyof T[K1][K2][K3],
+    K5 extends keyof S[K1][K2][K3][K4] & keyof T[K1][K2][K3][K4]
   >(
     path: [K1, K2, K3, K4, K5]
-  ): Lens<S, S[K1][K2][K3][K4][K5]>
-  <K1 extends keyof S, K2 extends keyof S[K1], K3 extends keyof S[K1][K2], K4 extends keyof S[K1][K2][K3]>(
+  ): Lens<S, S[K1][K2][K3][K4][K5], T, T[K1][K2][K3][K4][K5]>
+  <
+    K1 extends keyof S & keyof T,
+    K2 extends keyof S[K1] & keyof T[K1],
+    K3 extends keyof S[K1][K2] & keyof T[K1][K2],
+    K4 extends keyof S[K1][K2][K3] & keyof T[K1][K2][K3]
+  >(
     path: [K1, K2, K3, K4]
-  ): Lens<S, S[K1][K2][K3][K4]>
-  <K1 extends keyof S, K2 extends keyof S[K1], K3 extends keyof S[K1][K2]>(path: [K1, K2, K3]): Lens<S, S[K1][K2][K3]>
-  <K1 extends keyof S, K2 extends keyof S[K1]>(path: [K1, K2]): Lens<S, S[K1][K2]>
-  <K1 extends keyof S>(path: [K1]): Lens<S, S[K1]>
+  ): Lens<S, S[K1][K2][K3][K4], T, T[K1][K2][K3][K4]>
+  <K1 extends keyof S & keyof T, K2 extends keyof S[K1] & keyof T[K1], K3 extends keyof S[K1][K2] & keyof T[K1][K2]>(
+    path: [K1, K2, K3]
+  ): Lens<S, S[K1][K2][K3], T, T[K1][K2][K3]>
+  <K1 extends keyof S & keyof T, K2 extends keyof S[K1] & keyof T[K1]>(path: [K1, K2]): Lens<S, S[K1][K2], T, T[K1][K2]>
+  <K1 extends keyof S & keyof T>(path: [K1]): Lens<S, S[K1], T, T[K1]>
 }
 
 function lensFromPath(path: Array<any>): any {
@@ -187,7 +194,7 @@ export class Lens<S, A, T = S, B = A> {
    * assert.strictEqual(city.get(person), 'Milan')
    * assert.deepStrictEqual(city.set('London')(person), { name: 'Giulio', age: 43, address: { city: 'London' } })
    */
-  static fromPath<S>(): LensFromPath<S>
+  static fromPath<S, T = S>(): LensFromPath<S, T>
   static fromPath<
     S,
     K1 extends keyof S,
@@ -232,7 +239,7 @@ export class Lens<S, A, T = S, B = A> {
    * assert.strictEqual(age.get(person), 43)
    * assert.deepStrictEqual(age.set(44)(person), { name: 'Giulio', age: 44 })
    */
-  static fromProp<S>(): <P extends keyof S>(prop: P) => Lens<S, S[P]>
+  static fromProp<S, T = S>(): <P extends keyof S & keyof T>(prop: P) => Lens<S, S[P], T, T[P]>
   static fromProp<S, P extends keyof S>(prop: P): Lens<S, S[P]>
   static fromProp(): any {
     return arguments.length === 0 ? lensFromProp : lensFromProp<any, any>(arguments[0])
@@ -257,7 +264,9 @@ export class Lens<S, A, T = S, B = A> {
    * assert.deepStrictEqual(lens.get(person), { name: 'Giulio', age: 44 })
    * assert.deepStrictEqual(lens.set({ name: 'Guido', age: 47 })(person), { name: 'Guido', age: 47, rememberMe: true })
    */
-  static fromProps<S>(): <P extends keyof S>(props: Array<P>) => Lens<S, { [K in P]: S[K] }> {
+  static fromProps<S, T = S>(): <P extends keyof S & keyof T>(
+    props: Array<P>
+  ) => Lens<S, { [K in P]: S[K] }, T, { [K in P]: T[K] }> {
     return props => {
       const len = props.length
       return new Lens(
@@ -269,15 +278,7 @@ export class Lens<S, A, T = S, B = A> {
           }
           return r
         },
-        a => s => {
-          for (let i = 0; i < len; i++) {
-            const k = props[i]
-            if (a[k] !== s[k]) {
-              return Object.assign({}, s, a)
-            }
-          }
-          return s
-        }
+        a => s => Object.assign({}, s, a) as any
       )
     }
   }
@@ -306,7 +307,10 @@ export class Lens<S, A, T = S, B = A> {
    * assert.deepStrictEqual(lens.set(1)({ inner: { value: 1, foo: 'bar' } })), { inner: { value: 1, foo: 'bar' } })
    * assert.strictEqual(lens.get({ inner: { value: 1, foo: 'bar' } })), 1)
    */
-  static fromNullableProp<S>(): <A extends S[K], K extends keyof S>(k: K, defaultValue: A) => Lens<S, NonNullable<S[K]>>
+  static fromNullableProp<S, T = S>(): <A extends S[K], K extends keyof S & keyof T>(
+    k: K,
+    defaultValue: A
+  ) => Lens<S, NonNullable<S[K]>, T, NonNullable<T[K]>>
   static fromNullableProp<S, A extends S[K], K extends keyof S>(k: K, defaultValue: A): Lens<S, NonNullable<S[K]>>
   static fromNullableProp(): any {
     return arguments.length === 0
@@ -414,7 +418,7 @@ export class Prism<S, A, T = S, B = A> {
     return new Prism(s => (refinement(s) ? right(s) : left(s)), identity)
   }
 
-  static some<A>(): Prism<Option<A>, A> {
+  static some<A, B = A>(): Prism<Option<A>, A, Option<B>, B> {
     return somePrism
   }
 
@@ -511,14 +515,18 @@ const somePrism: Prism<Option<any>, any> = new Prism(
   some
 )
 
-function optionalFromNullableProp<S, K extends keyof S>(k: K): Optional<S, NonNullable<S[K]>> {
+function optionalFromNullableProp<S, T, K extends keyof S & keyof T>(
+  k: K
+): Optional<S, NonNullable<S[K]>, T, NonNullable<T[K]>> {
   return new Optional((s: any) => fromNullable(s[k]).foldL(() => left(s), right), a => s => update(s, k, a))
 }
 
-type OptionPropertyNames<S> = { [K in keyof S]-?: S[K] extends Option<any> ? K : never }[keyof S]
-type OptionPropertyType<S, K extends OptionPropertyNames<S>> = S[K] extends Option<infer A> ? A : never
+type OptionPropertyNames<S, T> = { [K in keyof S & keyof T]-?: S[K] extends Option<any> ? K : never }[keyof S & keyof T]
+type OptionPropertyType<S, T, K extends OptionPropertyNames<S, T>> = S[K] extends Option<infer A> ? A : never
 
-function optionalFromOptionProp<S, K extends OptionPropertyNames<S>>(k: K): Optional<S, OptionPropertyType<S, K>> {
+function optionalFromOptionProp<S, T, K extends OptionPropertyNames<S, T>>(
+  k: K
+): Optional<S, OptionPropertyType<S, T, K>> {
   return lensFromProp<S, K>(k).composePrism(somePrism as any)
 }
 
@@ -576,10 +584,12 @@ export class Optional<S, A, T = S, B = A> {
    * numberFromResponse.getOption(response1) // some('555-1234')
    * numberFromResponse.getOption(response2) // none
    */
-  static fromNullableProp<S>(): <K extends keyof S>(k: K) => Optional<S, NonNullable<S[K]>>
+  static fromNullableProp<S, T = S>(): <K extends keyof S & keyof T>(
+    k: K
+  ) => Optional<S, NonNullable<S[K]>, T, NonNullable<T[K]>>
   static fromNullableProp<S, A extends S[K], K extends keyof S>(k: K): Optional<S, NonNullable<S[K]>>
   static fromNullableProp(): any {
-    return arguments.length === 0 ? optionalFromNullableProp : optionalFromNullableProp<any, any>(arguments[0])
+    return arguments.length === 0 ? optionalFromNullableProp : optionalFromNullableProp<any, any, any>(arguments[0])
   }
 
   /**
@@ -609,10 +619,12 @@ export class Optional<S, A, T = S, B = A> {
    *   .compose(phone)
    *   .composeLens(number)
    */
-  static fromOptionProp<S>(): <P extends OptionPropertyNames<S>>(prop: P) => Optional<S, OptionPropertyType<S, P>>
-  static fromOptionProp<S>(prop: OptionPropertyNames<S>): Optional<S, OptionPropertyType<S, typeof prop>>
+  static fromOptionProp<S, T = S>(): <P extends OptionPropertyNames<S, T>>(
+    prop: P
+  ) => Optional<S, OptionPropertyType<S, T, P>>
+  static fromOptionProp<S, T = S>(prop: OptionPropertyNames<S, T>): Optional<S, OptionPropertyType<S, T, typeof prop>>
   static fromOptionProp(): any {
-    return arguments.length === 0 ? optionalFromOptionProp : optionalFromOptionProp<any, any>(arguments[0])
+    return arguments.length === 0 ? optionalFromOptionProp : optionalFromOptionProp<any, any, any>(arguments[0])
   }
 
   getOption(s: S): Option<A> {
