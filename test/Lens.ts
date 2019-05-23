@@ -113,8 +113,8 @@ describe('Lens', () => {
     const lens = Lens.fromProps<Person>()(['name', 'age'])
     assert.deepStrictEqual(lens.get(person), { name: 'giulio', age: 44 })
     assert.deepStrictEqual(lens.set({ name: 'Guido', age: 47 })(person), { name: 'Guido', age: 47, rememberMe: true })
-    assert.strictEqual(lens.set({ age: 44, name: 'giulio' })(person), person)
-    assert.strictEqual(lens.modify(identity)(person), person)
+    assert.deepEqual(lens.set({ age: 44, name: 'giulio' })(person), person)
+    assert.deepEqual(lens.modify(identity)(person), person)
   })
 
   it('compose', () => {
