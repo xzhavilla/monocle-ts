@@ -1,4 +1,5 @@
 import * as assert from 'assert'
+import { left, right } from 'fp-ts/lib/Either'
 import { Optional, Lens } from '../src'
 import { none, some, Option } from 'fp-ts/lib/Option'
 import { identity } from 'fp-ts/lib/function'
@@ -7,7 +8,10 @@ interface A {
   a: Option<number>
 }
 
-const optional = new Optional<A, number>(s => s.a, a => s => s.a.fold<A>(s, () => ({ ...s, a: some(a) })))
+const optional = new Optional<A, number>(
+  s => s.a.fold(left(s), a => right(a)),
+  a => s => s.a.fold<A>(s, () => ({ ...s, a: some(a) }))
+)
 
 describe('Optional', () => {
   it('getOption', () => {
