@@ -50,13 +50,13 @@ export class Iso<S, A, T = S, B = A> {
   }
 
   /** view an Iso as a Prism */
-  asPrism(): Prism<S, A, T, B> {
-    return new Prism(s => right(this.get(s)), this.reverseGet)
+  asPrism(): PPrism<S, A, T, B> {
+    return new PPrism(s => right(this.get(s)), this.reverseGet)
   }
 
   /** view an Iso as a Optional */
-  asOptional(): Optional<S, A, T, B> {
-    return new Optional(s => right(this.get(s)), a => _ => this.reverseGet(a))
+  asOptional(): POptional<S, A, T, B> {
+    return new POptional(s => right(this.get(s)), a => _ => this.reverseGet(a))
   }
 
   /** view an Iso as a Traversal */
@@ -97,12 +97,12 @@ export class Iso<S, A, T = S, B = A> {
   }
 
   /** compose an Iso with a Prism */
-  composePrism<C, D = C>(ac: Prism<A, C, B, D>): Prism<S, C, T, D> {
+  composePrism<C, D = C>(ac: PPrism<A, C, B, D>): PPrism<S, C, T, D> {
     return this.asPrism().compose(ac)
   }
 
   /** compose an Iso with an Optional */
-  composeOptional<C, D = C>(ac: Optional<A, C, B, D>): Optional<S, C, T, D> {
+  composeOptional<C, D = C>(ac: POptional<A, C, B, D>): POptional<S, C, T, D> {
     return this.asOptional().compose(ac)
   }
 
@@ -323,8 +323,8 @@ export class Lens<S, A, T = S, B = A> {
   }
 
   /** view a Lens as a Optional */
-  asOptional(): Optional<S, A, T, B> {
-    return new Optional(s => right(this.get(s)), this.set)
+  asOptional(): POptional<S, A, T, B> {
+    return new POptional(s => right(this.get(s)), this.set)
   }
 
   /** view a Lens as a Traversal */
@@ -370,7 +370,7 @@ export class Lens<S, A, T = S, B = A> {
   }
 
   /** compose a Lens with an Optional */
-  composeOptional<C, D = C>(ac: Optional<A, C, B, D>): Optional<S, C, T, D> {
+  composeOptional<C, D = C>(ac: POptional<A, C, B, D>): POptional<S, C, T, D> {
     return this.asOptional().compose(ac)
   }
 
@@ -390,7 +390,7 @@ export class Lens<S, A, T = S, B = A> {
   }
 
   /** compose a Lens with a Prism */
-  composePrism<C, D = C>(ac: Prism<A, C, B, D>): Optional<S, C, T, D> {
+  composePrism<C, D = C>(ac: PPrism<A, C, B, D>): POptional<S, C, T, D> {
     return this.asOptional().compose(ac.asOptional())
   }
 }
@@ -400,25 +400,25 @@ export class Lens<S, A, T = S, B = A> {
   1. getOption(s).fold(s, reverseGet) = s
   2. getOption(reverseGet(a)) = Some(a)
 */
-export class Prism<S, A, T = S, B = A> {
+export class PPrism<S, A, T = S, B = A> {
   readonly _tag: 'Prism' = 'Prism'
   constructor(readonly getOrModify: (s: S) => Either<T, A>, readonly reverseGet: (b: B) => T) {}
 
-  static fromPredicate<S, A extends S>(refinement: Refinement<S, A>): Prism<S, A>
-  static fromPredicate<A>(predicate: Predicate<A>): Prism<A, A>
-  static fromPredicate<A>(predicate: Predicate<A>): Prism<A, A> {
-    return new Prism(s => (predicate(s) ? right(s) : left(s)), identity)
+  static fromPredicate<S, A extends S>(refinement: Refinement<S, A>): PPrism<S, A>
+  static fromPredicate<A>(predicate: Predicate<A>): PPrism<A, A>
+  static fromPredicate<A>(predicate: Predicate<A>): PPrism<A, A> {
+    return new PPrism(s => (predicate(s) ? right(s) : left(s)), identity)
   }
 
   /**
    * Use `fromPredicate` instead
    * @deprecated
    */
-  static fromRefinement<S, A extends S>(refinement: Refinement<S, A>): Prism<S, A> {
-    return new Prism(s => (refinement(s) ? right(s) : left(s)), identity)
+  static fromRefinement<S, A extends S>(refinement: Refinement<S, A>): PPrism<S, A> {
+    return new PPrism(s => (refinement(s) ? right(s) : left(s)), identity)
   }
 
-  static some<A, B = A>(): Prism<Option<A>, A, Option<B>, B> {
+  static some<A, B = A>(): PPrism<Option<A>, A, Option<B>, B> {
     return somePrism
   }
 
@@ -440,8 +440,8 @@ export class Prism<S, A, T = S, B = A> {
   }
 
   /** view a Prism as a Optional */
-  asOptional(): Optional<S, A, T, B> {
-    return new Optional(this.getOrModify, b => this.set(b))
+  asOptional(): POptional<S, A, T, B> {
+    return new POptional(this.getOrModify, b => this.set(b))
   }
 
   /** view a Prism as a Traversal */
@@ -462,20 +462,20 @@ export class Prism<S, A, T = S, B = A> {
   }
 
   /** compose a Prism with a Prism */
-  compose<C, D = C>(ac: Prism<A, C, B, D>): Prism<S, C, T, D> {
-    return new Prism(
+  compose<C, D = C>(ac: PPrism<A, C, B, D>): PPrism<S, C, T, D> {
+    return new PPrism(
       s => this.getOrModify(s).chain(a => ac.getOrModify(a).bimap(b => this.set(b)(s), identity)),
       b => this.reverseGet(ac.reverseGet(b))
     )
   }
 
   /** @alias of `compose` */
-  composePrism<C, D = C>(ac: Prism<A, C, B, D>): Prism<S, C, T, D> {
+  composePrism<C, D = C>(ac: PPrism<A, C, B, D>): PPrism<S, C, T, D> {
     return this.compose(ac)
   }
 
   /** compose a Prism with a Optional */
-  composeOptional<C, D = C>(ac: Optional<A, C, B, D>): Optional<S, C, T, D> {
+  composeOptional<C, D = C>(ac: POptional<A, C, B, D>): POptional<S, C, T, D> {
     return this.asOptional().compose(ac)
   }
 
@@ -495,12 +495,12 @@ export class Prism<S, A, T = S, B = A> {
   }
 
   /** compose a Prism with a Iso */
-  composeIso<C, D = C>(ac: Iso<A, C, B, D>): Prism<S, C, T, D> {
+  composeIso<C, D = C>(ac: Iso<A, C, B, D>): PPrism<S, C, T, D> {
     return this.compose(ac.asPrism())
   }
 
   /** compose a Prism with a Lens */
-  composeLens<C, D = C>(ac: Lens<A, C, B, D>): Optional<S, C, T, D> {
+  composeLens<C, D = C>(ac: Lens<A, C, B, D>): POptional<S, C, T, D> {
     return this.asOptional().compose(ac.asOptional())
   }
 
@@ -510,15 +510,21 @@ export class Prism<S, A, T = S, B = A> {
   }
 }
 
-const somePrism: Prism<Option<any>, any> = new Prism(
+export class Prism<S, A> extends PPrism<S, A, S, A> {
+  constructor(getOption: (s: S) => Option<A>, reverseGet: (b: A) => S) {
+    super(s => getOption(s).foldL(() => left(s), a => right(a)), reverseGet)
+  }
+}
+
+const somePrism: PPrism<Option<any>, any> = new PPrism(
   s => s.foldL<Either<Option<any>, any>>(() => left(none), right),
   some
 )
 
 function optionalFromNullableProp<S, T, K extends keyof S & keyof T>(
   k: K
-): Optional<S, NonNullable<S[K]>, T, NonNullable<T[K]>> {
-  return new Optional((s: any) => fromNullable(s[k]).foldL(() => left(s), right), a => s => update(s, k, a))
+): POptional<S, NonNullable<S[K]>, T, NonNullable<T[K]>> {
+  return new POptional((s: any) => fromNullable(s[k]).foldL(() => left(s), right), a => s => update(s, k, a))
 }
 
 type OptionPropertyNames<S, T> = { [K in keyof S & keyof T]-?: S[K] extends Option<any> ? K : never }[keyof S & keyof T]
@@ -526,7 +532,7 @@ type OptionPropertyType<S, T, K extends OptionPropertyNames<S, T>> = S[K] extend
 
 function optionalFromOptionProp<S, T, K extends OptionPropertyNames<S, T>>(
   k: K
-): Optional<S, OptionPropertyType<S, T, K>> {
+): POptional<S, OptionPropertyType<S, T, K>> {
   return lensFromProp<S, K>(k).composePrism(somePrism as any)
 }
 
@@ -536,7 +542,7 @@ function optionalFromOptionProp<S, T, K extends OptionPropertyNames<S, T>>(
   2. getOption(set(a)(s)) = getOption(s).map(_ => a)
   3. set(a)(set(a)(s)) = set(a)(s)
 */
-export class Optional<S, A, T = S, B = A> {
+export class POptional<S, A, T = S, B = A> {
   readonly _tag: 'Optional' = 'Optional'
   constructor(readonly getOrModify: (s: S) => Either<T, A>, readonly set: (b: B) => (s: S) => T) {}
 
@@ -586,8 +592,8 @@ export class Optional<S, A, T = S, B = A> {
    */
   static fromNullableProp<S, T = S>(): <K extends keyof S & keyof T>(
     k: K
-  ) => Optional<S, NonNullable<S[K]>, T, NonNullable<T[K]>>
-  static fromNullableProp<S, A extends S[K], K extends keyof S>(k: K): Optional<S, NonNullable<S[K]>>
+  ) => POptional<S, NonNullable<S[K]>, T, NonNullable<T[K]>>
+  static fromNullableProp<S, A extends S[K], K extends keyof S>(k: K): POptional<S, NonNullable<S[K]>>
   static fromNullableProp(): any {
     return arguments.length === 0 ? optionalFromNullableProp : optionalFromNullableProp<any, any, any>(arguments[0])
   }
@@ -621,8 +627,8 @@ export class Optional<S, A, T = S, B = A> {
    */
   static fromOptionProp<S, T = S>(): <P extends OptionPropertyNames<S, T>>(
     prop: P
-  ) => Optional<S, OptionPropertyType<S, T, P>>
-  static fromOptionProp<S, T = S>(prop: OptionPropertyNames<S, T>): Optional<S, OptionPropertyType<S, T, typeof prop>>
+  ) => POptional<S, OptionPropertyType<S, T, P>>
+  static fromOptionProp<S, T = S>(prop: OptionPropertyNames<S, T>): POptional<S, OptionPropertyType<S, T, typeof prop>>
   static fromOptionProp(): any {
     return arguments.length === 0 ? optionalFromOptionProp : optionalFromOptionProp<any, any, any>(arguments[0])
   }
@@ -657,15 +663,15 @@ export class Optional<S, A, T = S, B = A> {
   }
 
   /** compose a Optional with a Optional */
-  compose<C, D = C>(ac: Optional<A, C, B, D>): Optional<S, C, T, D> {
-    return new Optional<S, C, T, D>(
+  compose<C, D = C>(ac: POptional<A, C, B, D>): POptional<S, C, T, D> {
+    return new POptional<S, C, T, D>(
       s => this.getOrModify(s).chain(a => ac.getOrModify(a).bimap(b => this.set(b)(s), identity)),
       b => this.modify(ac.set(b))
     )
   }
 
   /** @alias of `compose` */
-  composeOptional<C, D = C>(ac: Optional<A, C, B, D>): Optional<S, C, T, D> {
+  composeOptional<C, D = C>(ac: POptional<A, C, B, D>): POptional<S, C, T, D> {
     return this.compose(ac)
   }
 
@@ -685,23 +691,29 @@ export class Optional<S, A, T = S, B = A> {
   }
 
   /** compose an Optional with a Lens */
-  composeLens<C, D = C>(ac: Lens<A, C, B, D>): Optional<S, C, T, D> {
+  composeLens<C, D = C>(ac: Lens<A, C, B, D>): POptional<S, C, T, D> {
     return this.compose(ac.asOptional())
   }
 
   /** compose an Optional with a Prism */
-  composePrism<C, D = C>(ac: Prism<A, C, B, D>): Optional<S, C, T, D> {
+  composePrism<C, D = C>(ac: PPrism<A, C, B, D>): POptional<S, C, T, D> {
     return this.compose(ac.asOptional())
   }
 
   /** compose an Optional with a Iso */
-  composeIso<C, D = C>(ac: Iso<A, C, B, D>): Optional<S, C, T, D> {
+  composeIso<C, D = C>(ac: Iso<A, C, B, D>): POptional<S, C, T, D> {
     return this.compose(ac.asOptional())
   }
 
   /** compose an Optional with a Getter */
   composeGetter<C>(ac: Getter<A, C>): Fold<S, C> {
     return this.asFold().compose(ac.asFold())
+  }
+}
+
+export class Optional<S, A> extends POptional<S, A, S, A> {
+  constructor(getOption: (s: S) => Option<A>, set: (a: A) => (s: S) => S) {
+    super(s => getOption(s).foldL(() => left(s), a => right(a)), set)
   }
 }
 
@@ -753,7 +765,7 @@ export class Traversal<S, A, T = S, B = A> {
   filter<C extends A>(this: Traversal<S, A>, refinement: Refinement<A, C>): Traversal<S, C>
   filter(this: Traversal<S, A>, predicate: Predicate<A>): Traversal<S, A>
   filter(this: Traversal<S, A>, predicate: Predicate<A>): Traversal<S, A> {
-    return this.composePrism(Prism.fromPredicate(predicate))
+    return this.composePrism(PPrism.fromPredicate(predicate))
   }
 
   /** view a Traversal as a Fold */
@@ -791,7 +803,7 @@ export class Traversal<S, A, T = S, B = A> {
   }
 
   /** compose a Traversal with a Optional */
-  composeOptional<C, D = C>(ac: Optional<A, C, B, D>): Traversal<S, C, T, D> {
+  composeOptional<C, D = C>(ac: POptional<A, C, B, D>): Traversal<S, C, T, D> {
     return this.compose(ac.asTraversal())
   }
 
@@ -801,7 +813,7 @@ export class Traversal<S, A, T = S, B = A> {
   }
 
   /** compose a Traversal with a Prism */
-  composePrism<C, D = C>(ac: Prism<A, C, B, D>): Traversal<S, C, T, D> {
+  composePrism<C, D = C>(ac: PPrism<A, C, B, D>): Traversal<S, C, T, D> {
     return this.compose(ac.asTraversal())
   }
 
@@ -828,10 +840,10 @@ export class At<S, I, A> {
 
 export class Index<S, I, A> {
   readonly _tag: 'Index' = 'Index'
-  constructor(readonly index: (i: I) => Optional<S, A>) {}
+  constructor(readonly index: (i: I) => POptional<S, A>) {}
 
   static fromAt<T, J, B>(at: At<T, J, Option<B>>): Index<T, J, B> {
-    return new Index(i => at.at(i).composePrism(Prism.some()))
+    return new Index(i => at.at(i).composePrism(PPrism.some()))
   }
 
   /** lift an instance of `Index` using an `Iso` */
@@ -880,12 +892,12 @@ export class Getter<S, A> {
   }
 
   /** compose a Getter with a Optional */
-  composeOptional<B>(ab: Optional<A, B>): Fold<S, B> {
+  composeOptional<B>(ab: POptional<A, B>): Fold<S, B> {
     return this.asFold().compose(ab.asFold())
   }
 
   /** compose a Getter with a Prism */
-  composePrism<B>(ab: Prism<A, B>): Fold<S, B> {
+  composePrism<B>(ab: PPrism<A, B>): Fold<S, B> {
     return this.asFold().compose(ab.asFold())
   }
 }
@@ -927,7 +939,7 @@ export class Fold<S, A> {
   }
 
   /** compose a Fold with a Optional */
-  composeOptional<B>(ab: Optional<A, B>): Fold<S, B> {
+  composeOptional<B>(ab: POptional<A, B>): Fold<S, B> {
     return this.compose(ab.asFold())
   }
 
@@ -937,7 +949,7 @@ export class Fold<S, A> {
   }
 
   /** compose a Fold with a Prism */
-  composePrism<B>(ab: Prism<A, B>): Fold<S, B> {
+  composePrism<B>(ab: PPrism<A, B>): Fold<S, B> {
     return this.compose(ab.asFold())
   }
 
@@ -983,7 +995,7 @@ export class Setter<S, A, T = S, B = A> {
   }
 
   /** compose a Setter with a Optional */
-  composeOptional<C, D = C>(ac: Optional<A, C, B, D>): Setter<S, C, T, D> {
+  composeOptional<C, D = C>(ac: POptional<A, C, B, D>): Setter<S, C, T, D> {
     return this.compose(ac.asSetter())
   }
 
@@ -993,7 +1005,7 @@ export class Setter<S, A, T = S, B = A> {
   }
 
   /** compose a Setter with a Prism */
-  composePrism<C, D = C>(ac: Prism<A, C, B, D>): Setter<S, C, T, D> {
+  composePrism<C, D = C>(ac: PPrism<A, C, B, D>): Setter<S, C, T, D> {
     return this.compose(ac.asSetter())
   }
 

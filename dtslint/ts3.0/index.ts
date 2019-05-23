@@ -84,8 +84,8 @@ const getLensFromNullableProp = <T extends Person>(): Lens<T, NonNullable<T['bio
 // Optional.fromNullableProp
 //
 
-Optional.fromNullableProp<Person>()('bio') // $ExpectType Optional<Person, string, Person, string>
-Optional.fromNullableProp<Person, string, 'bio'>('bio') // $ExpectType Optional<Person, string, Person, string>
+Optional.fromNullableProp<Person>()('bio') // $ExpectType POptional<Person, string, Person, string>
+Optional.fromNullableProp<Person, string, 'bio'>('bio') // $ExpectType POptional<Person, string, Person, string>
 const getOptionalFromNullableProp = <T extends Person>(): Optional<T, NonNullable<T['bio']>> =>
   Optional.fromNullableProp<T>()('bio')
 
@@ -93,8 +93,8 @@ const getOptionalFromNullableProp = <T extends Person>(): Optional<T, NonNullabl
 // Optional.fromOptionProp
 //
 
-Optional.fromOptionProp<Person>()('email') // $ExpectType Optional<Person, string, Person, string>
-Optional.fromOptionProp<Person>('email') // $ExpectType Optional<Person, string, Person, string>
+Optional.fromOptionProp<Person>()('email') // $ExpectType POptional<Person, string, Person, string>
+Optional.fromOptionProp<Person>('email') // $ExpectType POptional<Person, string, Person, string>
 // const getOptionalFromOptionProp = <T extends Person>(): Optional<T, string> => Optional.fromOptionProp<T>('email')
 
 // $ExpectError
@@ -117,7 +117,7 @@ interface Employment {
   phone: Option<Phone>
 }
 
-Optional.fromOptionProp<Employment>('phone') // $ExpectType Optional<Employment, Phone, Employment, Phone>
+Optional.fromOptionProp<Employment>('phone') // $ExpectType POptional<Employment, Phone, Employment, Phone>
 // $ExpectError
 Optional.fromOptionProp<Employment>('foo')
 
