@@ -51,12 +51,12 @@ export declare class Iso<S, A, T = S, B = A> {
     /** compose an Iso with a Setter */
     composeSetter<C, D = C>(ac: Setter<A, C, B, D>): Setter<S, C, T, D>;
 }
-export interface LensFromPath<S> {
-    <K1 extends keyof S, K2 extends keyof S[K1], K3 extends keyof S[K1][K2], K4 extends keyof S[K1][K2][K3], K5 extends keyof S[K1][K2][K3][K4]>(path: [K1, K2, K3, K4, K5]): Lens<S, S[K1][K2][K3][K4][K5]>;
-    <K1 extends keyof S, K2 extends keyof S[K1], K3 extends keyof S[K1][K2], K4 extends keyof S[K1][K2][K3]>(path: [K1, K2, K3, K4]): Lens<S, S[K1][K2][K3][K4]>;
-    <K1 extends keyof S, K2 extends keyof S[K1], K3 extends keyof S[K1][K2]>(path: [K1, K2, K3]): Lens<S, S[K1][K2][K3]>;
-    <K1 extends keyof S, K2 extends keyof S[K1]>(path: [K1, K2]): Lens<S, S[K1][K2]>;
-    <K1 extends keyof S>(path: [K1]): Lens<S, S[K1]>;
+export interface LensFromPath<S, T = S> {
+    <K1 extends keyof S & keyof T, K2 extends keyof S[K1] & keyof T[K1], K3 extends keyof S[K1][K2] & keyof T[K1][K2], K4 extends keyof S[K1][K2][K3] & keyof T[K1][K2][K3], K5 extends keyof S[K1][K2][K3][K4] & keyof T[K1][K2][K3][K4]>(path: [K1, K2, K3, K4, K5]): Lens<S, S[K1][K2][K3][K4][K5], T, T[K1][K2][K3][K4][K5]>;
+    <K1 extends keyof S & keyof T, K2 extends keyof S[K1] & keyof T[K1], K3 extends keyof S[K1][K2] & keyof T[K1][K2], K4 extends keyof S[K1][K2][K3] & keyof T[K1][K2][K3]>(path: [K1, K2, K3, K4]): Lens<S, S[K1][K2][K3][K4], T, T[K1][K2][K3][K4]>;
+    <K1 extends keyof S & keyof T, K2 extends keyof S[K1] & keyof T[K1], K3 extends keyof S[K1][K2] & keyof T[K1][K2]>(path: [K1, K2, K3]): Lens<S, S[K1][K2][K3], T, T[K1][K2][K3]>;
+    <K1 extends keyof S & keyof T, K2 extends keyof S[K1] & keyof T[K1]>(path: [K1, K2]): Lens<S, S[K1][K2], T, T[K1][K2]>;
+    <K1 extends keyof S & keyof T>(path: [K1]): Lens<S, S[K1], T, T[K1]>;
 }
 export declare class Lens<S, A, T = S, B = A> {
     readonly get: (s: S) => A;
@@ -82,7 +82,7 @@ export declare class Lens<S, A, T = S, B = A> {
      * assert.strictEqual(city.get(person), 'Milan')
      * assert.deepStrictEqual(city.set('London')(person), { name: 'Giulio', age: 43, address: { city: 'London' } })
      */
-    static fromPath<S>(): LensFromPath<S>;
+    static fromPath<S, T = S>(): LensFromPath<S, T>;
     static fromPath<S, K1 extends keyof S, K2 extends keyof S[K1], K3 extends keyof S[K1][K2], K4 extends keyof S[K1][K2][K3], K5 extends keyof S[K1][K2][K3][K4]>(path: [K1, K2, K3, K4, K5]): Lens<S, S[K1][K2][K3][K4][K5]>;
     static fromPath<S, K1 extends keyof S, K2 extends keyof S[K1], K3 extends keyof S[K1][K2], K4 extends keyof S[K1][K2][K3]>(path: [K1, K2, K3, K4]): Lens<S, S[K1][K2][K3][K4]>;
     static fromPath<S, K1 extends keyof S, K2 extends keyof S[K1], K3 extends keyof S[K1][K2]>(path: [K1, K2, K3]): Lens<S, S[K1][K2][K3]>;
@@ -108,7 +108,7 @@ export declare class Lens<S, A, T = S, B = A> {
      * assert.strictEqual(age.get(person), 43)
      * assert.deepStrictEqual(age.set(44)(person), { name: 'Giulio', age: 44 })
      */
-    static fromProp<S>(): <P extends keyof S>(prop: P) => Lens<S, S[P]>;
+    static fromProp<S, T = S>(): <P extends keyof S & keyof T>(prop: P) => Lens<S, S[P], T, T[P]>;
     static fromProp<S, P extends keyof S>(prop: P): Lens<S, S[P]>;
     /**
      * generate a lens from a type and an array of props
@@ -129,8 +129,10 @@ export declare class Lens<S, A, T = S, B = A> {
      * assert.deepStrictEqual(lens.get(person), { name: 'Giulio', age: 44 })
      * assert.deepStrictEqual(lens.set({ name: 'Guido', age: 47 })(person), { name: 'Guido', age: 47, rememberMe: true })
      */
-    static fromProps<S>(): <P extends keyof S>(props: Array<P>) => Lens<S, {
+    static fromProps<S, T = S>(): <P extends keyof S & keyof T>(props: Array<P>) => Lens<S, {
         [K in P]: S[K];
+    }, T, {
+        [K in P]: T[K];
     }>;
     /**
      * generate a lens from a type and a prop whose type is nullable
@@ -156,7 +158,7 @@ export declare class Lens<S, A, T = S, B = A> {
      * assert.deepStrictEqual(lens.set(1)({ inner: { value: 1, foo: 'bar' } })), { inner: { value: 1, foo: 'bar' } })
      * assert.strictEqual(lens.get({ inner: { value: 1, foo: 'bar' } })), 1)
      */
-    static fromNullableProp<S>(): <A extends S[K], K extends keyof S>(k: K, defaultValue: A) => Lens<S, NonNullable<S[K]>>;
+    static fromNullableProp<S, T = S>(): <A extends S[K], K extends keyof S & keyof T>(k: K, defaultValue: A) => Lens<S, NonNullable<S[K]>, T, NonNullable<T[K]>>;
     static fromNullableProp<S, A extends S[K], K extends keyof S>(k: K, defaultValue: A): Lens<S, NonNullable<S[K]>>;
     modify(f: (a: A) => B): (s: S) => T;
     /** view a Lens as a Optional */
@@ -200,7 +202,7 @@ export declare class Prism<S, A, T = S, B = A> {
      * @deprecated
      */
     static fromRefinement<S, A extends S>(refinement: Refinement<S, A>): Prism<S, A>;
-    static some<A>(): Prism<Option<A>, A>;
+    static some<A, B = A>(): Prism<Option<A>, A, Option<B>, B>;
     getOption(s: S): Option<A>;
     modify(f: (a: A) => B): (s: S) => T;
     modifyOption(f: (a: A) => B): (s: S) => Option<T>;
@@ -233,10 +235,10 @@ export declare class Prism<S, A, T = S, B = A> {
     /** compose a Prism with a Getter */
     composeGetter<C>(ac: Getter<A, C>): Fold<S, C>;
 }
-declare type OptionPropertyNames<S> = {
-    [K in keyof S]-?: S[K] extends Option<any> ? K : never;
-}[keyof S];
-declare type OptionPropertyType<S, K extends OptionPropertyNames<S>> = S[K] extends Option<infer A> ? A : never;
+declare type OptionPropertyNames<S, T> = {
+    [K in keyof S & keyof T]-?: S[K] extends Option<any> ? K : never;
+}[keyof S & keyof T];
+declare type OptionPropertyType<S, T, K extends OptionPropertyNames<S, T>> = S[K] extends Option<infer A> ? A : never;
 export declare class Optional<S, A, T = S, B = A> {
     readonly getOrModify: (s: S) => Either<T, A>;
     readonly set: (b: B) => (s: S) => T;
@@ -286,7 +288,7 @@ export declare class Optional<S, A, T = S, B = A> {
      * numberFromResponse.getOption(response1) // some('555-1234')
      * numberFromResponse.getOption(response2) // none
      */
-    static fromNullableProp<S>(): <K extends keyof S>(k: K) => Optional<S, NonNullable<S[K]>>;
+    static fromNullableProp<S, T = S>(): <K extends keyof S & keyof T>(k: K) => Optional<S, NonNullable<S[K]>, T, NonNullable<T[K]>>;
     static fromNullableProp<S, A extends S[K], K extends keyof S>(k: K): Optional<S, NonNullable<S[K]>>;
     /**
      * @example
@@ -315,8 +317,8 @@ export declare class Optional<S, A, T = S, B = A> {
      *   .compose(phone)
      *   .composeLens(number)
      */
-    static fromOptionProp<S>(): <P extends OptionPropertyNames<S>>(prop: P) => Optional<S, OptionPropertyType<S, P>>;
-    static fromOptionProp<S>(prop: OptionPropertyNames<S>): Optional<S, OptionPropertyType<S, typeof prop>>;
+    static fromOptionProp<S, T = S>(): <P extends OptionPropertyNames<S, T>>(prop: P) => Optional<S, OptionPropertyType<S, T, P>>;
+    static fromOptionProp<S, T = S>(prop: OptionPropertyNames<S, T>): Optional<S, OptionPropertyType<S, T, typeof prop>>;
     getOption(s: S): Option<A>;
     modify(f: (a: A) => B): (s: S) => T;
     modifyOption(f: (a: A) => B): (s: S) => Option<T>;
