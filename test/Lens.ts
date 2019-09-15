@@ -94,8 +94,8 @@ describe('Lens', () => {
 
     assert.deepStrictEqual(lens1.set(1)({}), { inner: { value: 1, foo: 'foo' } })
     assert.strictEqual(lens1.get({}), 0)
-    assert.deepStrictEqual(lens1.set(1)({ inner: { value: 1, foo: 'bar' } }), { inner: { value: 1, foo: 'bar' } })
-    assert.strictEqual(lens1.get({ inner: { value: 1, foo: 'bar' } }), 1)
+    assert.deepStrictEqual(lens1.set(1)({ inner: { value: 1, foo: 'max' } }), { inner: { value: 1, foo: 'max' } })
+    assert.strictEqual(lens1.get({ inner: { value: 1, foo: 'max' } }), 1)
     assert.strictEqual(lens1.set(1)(outer1), outer1)
     assert.strictEqual(lens1.modify(identity)(outer1), outer1)
 
@@ -103,8 +103,8 @@ describe('Lens', () => {
     const lens2 = inner2.compose(value)
     assert.deepStrictEqual(lens2.set(1)({}), { inner: { value: 1, foo: 'foo' } })
     assert.strictEqual(lens2.get({}), 0)
-    assert.deepStrictEqual(lens2.set(1)({ inner: { value: 1, foo: 'bar' } }), { inner: { value: 1, foo: 'bar' } })
-    assert.strictEqual(lens2.get({ inner: { value: 1, foo: 'bar' } }), 1)
+    assert.deepStrictEqual(lens2.set(1)({ inner: { value: 1, foo: 'max' } }), { inner: { value: 1, foo: 'max' } })
+    assert.strictEqual(lens2.get({ inner: { value: 1, foo: 'max' } }), 1)
     assert.strictEqual(lens2.set(1)(outer1), outer1)
     assert.strictEqual(lens2.modify(identity)(outer1), outer1)
   })
